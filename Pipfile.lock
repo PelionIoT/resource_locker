@@ -1,0 +1,53 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "e251915a3e82aabcc938bd24d429db624e7234f6cdc93b9a0675359acb4e6e6c"
+        },
+        "host-environment-markers": {
+            "implementation_name": "cpython",
+            "implementation_version": "0",
+            "os_name": "nt",
+            "platform_machine": "AMD64",
+            "platform_python_implementation": "CPython",
+            "platform_release": "10",
+            "platform_system": "Windows",
+            "platform_version": "10.0.15063",
+            "python_full_version": "2.7.13",
+            "python_version": "2.7",
+            "sys_platform": "win32"
+        },
+        "pipfile-spec": 6,
+        "requires": {},
+        "sources": [
+            {
+                "name": "pypi",
+                "url": "https://pypi.python.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "python-redis-lock": {
+            "hashes": [
+                "sha256:52e8d70aa5c6b04ffe257696c7a8fa212dc0f10e0ff93dd87664c430febe0449",
+                "sha256:f308dda75449cba1155c5b6f8ebaa0dc1a25f6964ca4dc2a2ac889ff334b4237"
+            ],
+            "version": "==3.2.0"
+        },
+        "redis": {
+            "hashes": [
+                "sha256:8a1900a9f2a0a44ecf6e8b5eb3e967a9909dfed219ad66df094f27f7d6f330fb",
+                "sha256:a22ca993cea2962dbb588f9f30d0015ac4afcc45bee27d3978c0dbe9e97c6c0f"
+            ],
+            "version": "==2.10.6"
+        },
+        "redlock": {
+            "hashes": [
+                "sha256:ce7e6ab404882b64a9c5017c7a78b1a3714f2c712635bcb22cbb74d20719bbd1",
+                "sha256:b718646239d300745475a76e81d350ec523e7146cf84d696b3c4a7dfdd5dd4d4"
+            ],
+            "version": "==1.2.0"
+        }
+    },
+    "develop": {}
+}
