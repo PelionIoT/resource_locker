@@ -6,6 +6,8 @@ import redis_lock
 
 from threading import Lock
 
+"""
+
 host_id = "owned-by-%s" % socket.gethostname()
 
 print('owner', host_id)
@@ -42,6 +44,7 @@ with Lock(devices, org, expires=600) as obtained:  # ANDs R objects
     org['id']  # just works - org was not a list
     for device in devices:
         device['id']  # devices was a list, because n > 1
+"""
 
 
 class RequirementNotMet(Exception):
@@ -51,57 +54,111 @@ class RequirementNotMet(Exception):
 class Lock:
     lock_of_locks_key = 'lock_of_locks'
 
-    def new_lock(self, key):
-        return redis_lock.Lock(StrictRedis(), key)
+    def new_lock(self, key, **params):
+        opts = {k:v for k, v in params.items() if k in {'expire', 'auto_renewal'}}
+        return redis_lock.Lock(StrictRedis(), name=key, **opts)
 
-    def __init__(self, *requirements, expires=120, **params):
-        self.options = dict(expires=expires)
+    def __init__(self, *requirements, **params):
+        self.options = dict(expire=120, auto_renewal=True)
         self.options.update(params)
 
-        self.lol = self.new_lock(self.lock_of_locks_key)
-        self.attempted = []
-        self.requirements = [req if isinstance(req, Requirement) else Requirement(req) for req in requirements]
+        self.lol = self.new_lock(self.lock_of_locks_key, expire=60, auto_renewal=True)
+        self.obtained = []
+        self.requirements = []
+        self.unique_keys = set()
+
+        # list of all keys that are locked. we should ask the lockserver for this at the start.
+        self.known_locked_keys = []
+
+        for req in requirements:
+            self.add_requirement(req)
+
+    def add_requirement(self, req):
+        if not isinstance(req, Requirement):
+            req = Requirement(req)
+        for p in req.get_potentials():
+            if p.key in self.unique_keys:
+                raise ValueError(f'Must have unique keys, got two {repr(p.key)}')
+            self.unique_keys.add(p.key)
+        self.requirements.append(req)
 
     def aquire_all(self):
         for requirement in self.requirements:
             for potential in requirement.get_potentials():
-                lock = self.new_lock(potential.key)
-                self.attempted.append(lock)
-                lock.aquire()
+                lock = self.new_lock(potential.key, **self.options)
+                print('getting', potential.key, self.options.get('timeout'))
+                acquired = lock.acquire(timeout=self.options.get('timeout'))
+                if acquired:
+                    self.obtained.append(lock)
+                else:
+                    print('didnt get lock', potential.key)
+                    requirement.reject(potential)
+            if requirement.is_rejected:
+                raise Exception('cannot meet all requirements')
 
     def release_all(self):
-        for partial in self.attempted:
+        for partial in self.obtained:
             try:
                 partial.release()
-            except Exception:
+            except Exception as e:
                 # TODO: logging
+                print('release failed', e)
                 pass
+        self.obtained.clear()
 
-    def aquire(self):
+    def acquire(self):
+        # simultaneous locking
+        # alternatively, try ordered locking
         with self.lol:
             try:
                 self.aquire_all()
-            finally:
+            except Exception as e:
+                # TODO: logging
+                print('release all', e)
                 self.release_all()
+                raise
+        return self.obtained
 
     def release(self):
         self.release_all()
 
+    @staticmethod
+    def clear_all():
+        print('warning: clearing all locks')
+        redis_lock.reset_all(StrictRedis())
+
     def __enter__(self):
-        self.aquire()
+        return self.acquire()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.release()
 
 
 class Requirement:
-    def __init__(self, potentials, need=1, **params):
+    def __init__(self, *potentials, need=1, **params):
         self.options = dict(need=need)
         self.options.update(params)
 
         self.need = need
-        self.potentials = potentials
-        self.lock = Lock()
+        self.potentials = []
+        self._fulfilled = False
+        self._rejected = False
+
+        for p in potentials:
+            self.add_potential(p)
+
+    def add_potential(self, p):
+        if not isinstance(p, Potential):
+            p = Potential(p, **self.options)
+        self.potentials.append(p)
+
+    @property
+    def is_fulfilled(self):
+        return self._fulfilled
+
+    @property
+    def is_rejected(self):
+        return self._rejected
 
     def get_potentials(self):
         return self.potentials
@@ -109,23 +166,37 @@ class Requirement:
     def count(self):
         fulfilled = 0
         rejected = 0
-        with self.lock:
-            for potential in self.potentials:
-                if potential.fulfilled:
-                    fulfilled += 1
-                if potential.rejected:
-                    rejected += 1
+        for potential in self.potentials:
+            if potential.is_fulfilled:
+                fulfilled += 1
+            if potential.is_rejected:
+                rejected += 1
+        return fulfilled, rejected
 
     def reject(self, potential):
-        with self.lock:
-            self.potentials.remove(potential)
-            have = len(self.potentials)
-            if have < self.need:
-                raise RequirementNotMet(f'{have} < {self.need}')
+        potential.reject()
+        self.potentials.remove(potential)
+        fulfilled, rejected = self.count()
+        remaining = len(self.potentials) - rejected
+        if remaining < self.need:
+            self._rejected = True
+            raise RequirementNotMet(f'{remaining} potentials, (need {self.need})')
 
 
-def R(*potentials, **kwargs):
-    req = Requirement(potentials, **kwargs)
-    for potential in potentials:
-        potential.R = req
-    return potentials
+class Potential:
+    def __init__(self, item, key_gen=None, **params):
+        self._key = item if key_gen is None else key_gen(item)
+        self.item = item
+        self.is_fulfilled = False
+        self.is_rejected = False
+
+    @property
+    def key(self):
+        return self._key
+
+    def reject(self):
+        self.is_rejected = True
+
+    def reset(self):
+        self.is_fulfilled = False
+        self.is_rejected = False
