@@ -1,0 +1,2 @@
+class RequirementNotMet(Exception):
+    pass

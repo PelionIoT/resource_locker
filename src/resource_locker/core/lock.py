@@ -1,11 +1,8 @@
 from redis import StrictRedis
 import redis_lock
 
+from .exceptions import RequirementNotMet
 from .requirement import Requirement
-
-
-class RequirementNotMet(Exception):
-    pass
 
 
 class Lock:
@@ -101,5 +98,3 @@ class Lock:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.release()
-
-

@@ -1,4 +1,5 @@
-from resource_locker import Potential, RequirementNotMet
+from .exceptions import RequirementNotMet
+from .potential import Potential
 
 
 class Requirement:
