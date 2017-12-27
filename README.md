@@ -46,6 +46,12 @@ with Lock(req1, req2) as obtained:
     print(obtained[0][0]) # first requirement, first device
     print(obtained[0][1]) # first requirement, second device
     # alternatively
-    req1.items[1]  # second device
-    req2.items[0]  # 'this one thing'
+    req1[1]  # second device
+    req2[0]  # 'this one thing'
 ```
+
+## Task list
+- [ ] TODO: reduce fulfilled/rejected to a single tristate rather than two booleans
+- [ ] TODO: tagging of keys
+- [ ] TODO: logging of lock timings
+- [ ] TODO: a better approach to lock acquisition (rather than just marching)

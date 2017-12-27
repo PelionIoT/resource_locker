@@ -36,7 +36,7 @@ class Lock:
         if not isinstance(req, Requirement):
             req = Requirement(req, need=self.options.get('need'))
         req.validate()
-        for p in req.get_potentials():
+        for p in req.potentials:
             if p.key in self.unique_keys:
                 raise ValueError(f'Must have unique keys, got two {repr(p.key)}')
             self.unique_keys.add(p.key)
@@ -44,7 +44,7 @@ class Lock:
 
     def _acquire_all(self):
         for requirement in self.requirements:
-            for potential in requirement.get_potentials():
+            for potential in requirement.potentials:
                 if requirement.is_fulfilled:
                     break
                 lock = self.new_lock(potential.key, **self.options)
@@ -59,7 +59,6 @@ class Lock:
                 else:
                     potential.reject()
                     self.logger.warning('didnt get lock %s', potential.key)
-                requirement.validate()
             if not requirement.is_fulfilled:
                 raise RequirementNotMet('cannot meet all requirements')
         return self.requirements

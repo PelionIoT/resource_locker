@@ -11,7 +11,7 @@ class Test(BaseCase):
     def test_inits(self):
         a = Lock('a')
         r = a.requirements[0]
-        self.assertEqual('a', r.get_potentials()[0].key)
+        self.assertEqual('a', r.potentials[0].key)
         self.assertFalse(r.is_fulfilled)
 
     def test_invalid_inits(self):
@@ -34,14 +34,14 @@ class Test(BaseCase):
 
         with self.subTest(part='via R'):
             r = R(thing, key_gen=dict_str_id)
-            self.assertEqual(thing, r.get_potentials()[0].item)
-            self.assertEqual('123', r.get_potentials()[0].key)
+            self.assertEqual(thing, r.potentials[0].item)
+            self.assertEqual('123', r.potentials[0].key)
 
     def test_r_usage(self):
         r = R('a', 'b')
         # force fulfilment
-        r.get_potentials()[0].fulfill()
-        self.assertEqual(r.items[0].key, 'a')
+        r.potentials[0].fulfill()
+        self.assertEqual(r.fulfilled[0].key, 'a')
 
     def test_reset(self):
         p = P('a')
@@ -55,20 +55,34 @@ class Test(BaseCase):
         self.assertFalse(p.is_fulfilled)
 
     def test_requirement(self):
-        a = P('a')
-        a.reject()
-        b = P('b')
-        b.reject()
-        c = P('c')
-        c.fulfill()
+        a = P('a').reject()
+        b = P('b').reject()
+        c = P('c').fulfill()
 
         with self.subTest(part='impossible'):
             with self.assertRaises(RequirementNotMet):
                 R(a, b, c, need=5).validate()
 
-        with self.subTest(part='not enough'):
+        with self.subTest(part='still not enough'):
             with self.assertRaises(RequirementNotMet):
                 R(a, b, c, need=2).validate()
 
-        with self.subTest(part='ok'):
+        with self.subTest(part='sufficient'):
             R(a, b, c, need=1).validate()
+
+        with self.subTest(part='zero'):
+            R(a, b, c, need=0).validate()
+
+    def test_req_iter(self):
+        ids = ['a', 'b', 'c']
+        r = R(*ids)
+        with self.subTest(part='fulfilled potentials fully listed'):
+            self.assertListEqual(r.fulfilled, [])
+            [p.fulfill() for p in r.potentials]
+            self.assertListEqual([p.item for p in r.fulfilled], ids)
+
+        with self.subTest(part='R object is iterable'):
+            self.assertListEqual(list(r), ids)
+            
+        with self.subTest(part='R object is indexable'):
+            self.assertEqual(r[1], 'b')

@@ -8,40 +8,49 @@ class Requirement:
         self.options.update(params)
 
         self.need = self.options['need']
-        self.potentials = []
-        self._fulfilled = False
-        self._rejected = False
+        self._potentials = []
+        self._is_fulfilled = False
+        self._is_rejected = False
 
         for p in potentials:
             self.add_potential(p)
 
     def __getitem__(self, item):
-        return self.items[item].item
+        return self.fulfilled[item].item
+
+    def __len__(self):
+        return len(self.fulfilled)
+
+    def __iter__(self):
+        return (item.item for item in self.fulfilled)
 
     def add_potential(self, p):
         if not isinstance(p, Potential):
             p = Potential(p, **self.options)
-        self.potentials.append(p)
+        self._potentials.append(p)
+        return self
 
     @property
     def is_fulfilled(self):
-        return self._fulfilled
+        self.validate()
+        return self._is_fulfilled
 
     @property
     def is_rejected(self):
-        return self._rejected
-
-    def get_potentials(self):
-        return self.potentials
+        return self._is_rejected
 
     @property
-    def items(self):
-        return [p for p in self.potentials if p.is_fulfilled]
+    def potentials(self):
+        return self._potentials
+
+    @property
+    def fulfilled(self):
+        return [p for p in self._potentials if p.is_fulfilled]
 
     def count(self):
         fulfilled = 0
         rejected = 0
-        for potential in self.potentials:
+        for potential in self._potentials:
             if potential.is_fulfilled:
                 fulfilled += 1
             if potential.is_rejected:
@@ -51,16 +60,18 @@ class Requirement:
     def validate(self):
         fulfilled, rejected = self.count()
         if fulfilled >= self.need:
-            self._fulfilled = True
+            self._is_fulfilled = True
         else:
-            remaining = len(self.potentials) - rejected
+            remaining = len(self._potentials) - rejected
             if remaining < self.need:
-                self._rejected = True
+                self._is_rejected = True
                 # right now, requirements are 'AND' (mandatory ... clue is in the name)
                 raise RequirementNotMet(f'{remaining} potentials, (need {self.need})')
+        return self
 
     def reset(self):
-        self._fulfilled = False
-        self._rejected = False
-        for p in self.get_potentials():
+        self._is_fulfilled = False
+        self._is_rejected = False
+        for p in self.potentials:
             p.reset()
+        return self

@@ -28,8 +28,8 @@ class Test(BaseCase):
             self.assertEqual('a', obtained[0][0])
             self.assertEqual('b', obtained[1][0])
             self.assertEqual('a', r1[0][0])
-            self.assertEqual('a', r1.items[0].item)
-            self.assertEqual(1, len(r1.items))
+            self.assertEqual('a', r1.fulfilled[0].item)
+            self.assertEqual(1, len(r1.fulfilled))
             self.assertEqual(4, len(r1.potentials))
 
     def test_concurrent(self):
@@ -39,4 +39,4 @@ class Test(BaseCase):
         b = self.lock_class(b_req, auto_renewal=False)
         with a as obtained_a:
             with b as obtained_b:
-                self.assertNotEqual(a_req.items[0].key, b_req.items[0].key)
+                self.assertNotEqual(a_req.fulfilled[0].key, b_req.fulfilled[0].key)
