@@ -51,7 +51,8 @@ with Lock(req1, req2) as obtained:
 ```
 
 ## Task list
-- [ ] TODO: reduce fulfilled/rejected to a single tristate rather than two booleans
+- [x] TODO: reduce fulfilled/rejected to a single tristate rather than two booleans
 - [ ] TODO: tagging of keys
 - [ ] TODO: logging of lock timings
 - [ ] TODO: a better approach to lock acquisition (rather than just marching)
+- [ ] TODO: a test to validate high contention behaviour
