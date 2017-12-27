@@ -42,9 +42,11 @@ from resource_locker import Lock, R, P
 from operator import attrgetter
 req1 = R(*devices, need=2, key_gen=attrgetter('id'))
 req2 = R(P('this one thing'))
-with Lock(req1, req2) as obtained:
+with Lock(req1, req2, 'other thing') as obtained:
     print(obtained[0][0]) # first requirement, first device
     print(obtained[0][1]) # first requirement, second device
+    print(obtained[2][0]) # `other thing`
+    
     # alternatively
     req1[1]  # second device
     req2[0]  # 'this one thing'
@@ -56,3 +58,10 @@ with Lock(req1, req2) as obtained:
 - [ ] TODO: logging of lock timings
 - [ ] TODO: a better approach to lock acquisition (rather than just marching)
 - [ ] TODO: a test to validate high contention behaviour
+
+## Related reading
+[mbed Resource Pool?](https://github.com/ARMmbed/resource-pool)
+| [DLM](https://en.wikipedia.org/wiki/Distributed_lock_manager)
+| [Pareto](https://en.wikipedia.org/wiki/Pareto_efficiency)
+| [Ordered locking](http://www.informit.com/articles/article.aspx?p=30188&seqNum=7)
+| [Simultaneous locking](http://www.informit.com/articles/article.aspx?p=30188&seqNum=6)
