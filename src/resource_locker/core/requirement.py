@@ -9,8 +9,7 @@ class Requirement:
 
         self.need = self.options['need']
         self._potentials = []
-        self._is_fulfilled = False
-        self._is_rejected = False
+        self._state = None
 
         for p in potentials:
             self.add_potential(p)
@@ -33,11 +32,11 @@ class Requirement:
     @property
     def is_fulfilled(self):
         self.validate()
-        return self._is_fulfilled
+        return self._state is True
 
     @property
     def is_rejected(self):
-        return self._is_rejected
+        return self._state is False
 
     @property
     def potentials(self):
@@ -60,18 +59,17 @@ class Requirement:
     def validate(self):
         fulfilled, rejected = self.count()
         if fulfilled >= self.need:
-            self._is_fulfilled = True
+            self._state = True
         else:
             remaining = len(self._potentials) - rejected
             if remaining < self.need:
-                self._is_rejected = True
+                self._state = False
                 # right now, requirements are 'AND' (mandatory ... clue is in the name)
                 raise RequirementNotMet(f'{remaining} potentials, (need {self.need})')
         return self
 
     def reset(self):
-        self._is_fulfilled = False
-        self._is_rejected = False
+        self._state = None
         for p in self.potentials:
             p.reset()
         return self

@@ -83,6 +83,6 @@ class Test(BaseCase):
 
         with self.subTest(part='R object is iterable'):
             self.assertListEqual(list(r), ids)
-            
+
         with self.subTest(part='R object is indexable'):
             self.assertEqual(r[1], 'b')
