@@ -1,15 +1,13 @@
 from tests.base import BaseCase
 
+from resource_locker import RequirementNotMet
+
 from resource_locker import Lock
 from resource_locker import R
 from resource_locker import P
 
 
-def setUpModule():
-    Lock.clear_all()
-
-
-class TestSomething(BaseCase):
+class Test(BaseCase):
     def test_inits(self):
         a = Lock('a')
         r = a.requirements[0]
@@ -17,9 +15,12 @@ class TestSomething(BaseCase):
         self.assertFalse(r.is_fulfilled)
 
     def test_invalid_inits(self):
-        with self.subTest(invalid='same key'):
+        with self.subTest(part='same key'):
             with self.assertRaises(ValueError):
                 Lock('a', 'b', R('b', 'c'))
+        with self.subTest(part='invalid requirement'):
+            with self.assertRaises(RequirementNotMet):
+                Lock('a', need=2)
 
     def test_key_gen(self):
         def dict_str_id(d):
@@ -36,15 +37,38 @@ class TestSomething(BaseCase):
             self.assertEqual(thing, r.get_potentials()[0].item)
             self.assertEqual('123', r.get_potentials()[0].key)
 
-    def test_lock_one(self):
-        with Lock('a', 'b') as obtained:
-            print(obtained)
+    def test_r_usage(self):
+        r = R('a', 'b')
+        # force fulfilment
+        r.get_potentials()[0].fulfill()
+        self.assertEqual(r.items[0].key, 'a')
 
-    def test_lock_two(self):
-        try:
-            with self.assertRaises(Exception):
-                a = Lock('a')
-                a.acquire()
-                Lock('a', timeout=1).acquire()
-        finally:
-            a.release()
+    def test_reset(self):
+        p = P('a')
+        r = R(p)
+        p.fulfill()
+        r.validate()
+        self.assertTrue(r.is_fulfilled)
+        self.assertTrue(p.is_fulfilled)
+        r.reset()
+        self.assertFalse(r.is_fulfilled)
+        self.assertFalse(p.is_fulfilled)
+
+    def test_requirement(self):
+        a = P('a')
+        a.reject()
+        b = P('b')
+        b.reject()
+        c = P('c')
+        c.fulfill()
+
+        with self.subTest(part='impossible'):
+            with self.assertRaises(RequirementNotMet):
+                R(a, b, c, need=5).validate()
+
+        with self.subTest(part='not enough'):
+            with self.assertRaises(RequirementNotMet):
+                R(a, b, c, need=2).validate()
+
+        with self.subTest(part='ok'):
+            R(a, b, c, need=1).validate()

@@ -75,28 +75,33 @@ class Lock:
 
     def add_requirement(self, req):
         if not isinstance(req, Requirement):
-            req = Requirement(req)
+            req = Requirement(req, need=self.options.get('need'))
+        req.validate()
         for p in req.get_potentials():
             if p.key in self.unique_keys:
                 raise ValueError(f'Must have unique keys, got two {repr(p.key)}')
             self.unique_keys.add(p.key)
         self.requirements.append(req)
 
-    def aquire_all(self):
+    def _acquire_all(self):
         for requirement in self.requirements:
             for potential in requirement.get_potentials():
+                if requirement.is_fulfilled:
+                    break
                 lock = self.new_lock(potential.key, **self.options)
                 print('getting', potential.key, self.options.get('timeout'))
                 acquired = lock.acquire(timeout=self.options.get('timeout'))
                 if acquired:
+                    potential.fulfill()
                     self.obtained.append(lock)
                 else:
+                    potential.reject()
                     print('didnt get lock', potential.key)
-                    requirement.reject(potential)
+                requirement.validate()
             if requirement.is_rejected:
                 raise Exception('cannot meet all requirements')
 
-    def release_all(self):
+    def _release_all(self):
         for partial in self.obtained:
             try:
                 partial.release()
@@ -105,22 +110,24 @@ class Lock:
                 print('release failed', e)
                 pass
         self.obtained.clear()
+        for r in self.requirements:
+            r.reset()
 
     def acquire(self):
         # simultaneous locking
         # alternatively, try ordered locking
         with self.lol:
             try:
-                self.aquire_all()
+                self._acquire_all()
             except Exception as e:
                 # TODO: logging
                 print('release all', e)
-                self.release_all()
+                self._release_all()
                 raise
         return self.obtained
 
     def release(self):
-        self.release_all()
+        self._release_all()
 
     @staticmethod
     def clear_all():
@@ -135,11 +142,11 @@ class Lock:
 
 
 class Requirement:
-    def __init__(self, *potentials, need=1, **params):
-        self.options = dict(need=need)
+    def __init__(self, *potentials, need=None, **params):
+        self.options = dict(need=need or 1)
         self.options.update(params)
 
-        self.need = need
+        self.need = self.options['need']
         self.potentials = []
         self._fulfilled = False
         self._rejected = False
@@ -163,6 +170,10 @@ class Requirement:
     def get_potentials(self):
         return self.potentials
 
+    @property
+    def items(self):
+        return [p for p in self.potentials if p.is_fulfilled]
+
     def count(self):
         fulfilled = 0
         rejected = 0
@@ -173,14 +184,22 @@ class Requirement:
                 rejected += 1
         return fulfilled, rejected
 
-    def reject(self, potential):
-        potential.reject()
-        self.potentials.remove(potential)
+    def validate(self):
         fulfilled, rejected = self.count()
-        remaining = len(self.potentials) - rejected
-        if remaining < self.need:
-            self._rejected = True
-            raise RequirementNotMet(f'{remaining} potentials, (need {self.need})')
+        if fulfilled >= self.need:
+            self._fulfilled = True
+        else:
+            remaining = len(self.potentials) - rejected
+            if remaining < self.need:
+                self._rejected = True
+                # right now, requirements are 'AND' (mandatory ... clue is in the name)
+                raise RequirementNotMet(f'{remaining} potentials, (need {self.need})')
+
+    def reset(self):
+        self._fulfilled = False
+        self._rejected = False
+        for p in self.get_potentials():
+            p.reset()
 
 
 class Potential:
@@ -193,6 +212,9 @@ class Potential:
     @property
     def key(self):
         return self._key
+
+    def fulfill(self):
+        self.is_fulfilled = True
 
     def reject(self):
         self.is_rejected = True
