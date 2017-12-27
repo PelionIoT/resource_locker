@@ -91,9 +91,11 @@ class Lock:
                 if requirement.is_fulfilled:
                     break
                 lock = self.new_lock(potential.key, **self.options)
-
+                acq_kwargs = dict(blocking=bool(self.timeout))
+                if self.timeout:
+                    acq_kwargs.update(dict(timeout=self.timeout))
                 print('getting', potential.key, self.timeout)
-                acquired = lock.acquire(timeout=self.timeout, blocking=bool(self.timeout))
+                acquired = lock.acquire(**acq_kwargs)
                 if acquired:
                     potential.fulfill()
                     self.obtained.append(lock)
