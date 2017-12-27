@@ -1,47 +1,7 @@
 from redis import StrictRedis
 import redis_lock
 
-from .potential import Potential
-
-"""
-
-host_id = "owned-by-%s" % socket.gethostname()
-
-print('owner', host_id)
-conn = StrictRedis()
-with redis_lock.Lock(conn, "name-of-the-lock", id=host_id):
-    print("Got the lock. Doing some work ...")
-    time.sleep(5)
-
-
-# from redlock import RedLockFactory
-# factory = RedLockFactory(
-#     connection_details=[
-#         {'host': 'xxx.xxx.xxx.xxx'},
-#         {'host': 'xxx.xxx.xxx.xxx'},
-#         {'host': 'xxx.xxx.xxx.xxx'},
-#         {'host': 'xxx.xxx.xxx.xxx'},
-#     ])
-
-# example usage
-Lock = LockFactory([conn], default_args_such_as, autorenew=True, expires=120)
-devices = R(D1, D2, D3, need=2)  # ORs devices
-org = R(O1, O2, need=1)  # (1 default)
-
-# future: combine ORs and ANDs, and other combinatorics
-
-with Lock(devices, org, expires=600) as obtained:  # ANDs R objects
-    # doing a test using a specific device and organisation
-    # on success or failure, lock is released
-    # on crash, lock will eventually timeout
-
-    obtained[0] == devices
-    obtained[1] == org
-
-    org['id']  # just works - org was not a list
-    for device in devices:
-        device['id']  # devices was a list, because n > 1
-"""
+from .requirement import Requirement
 
 
 class RequirementNotMet(Exception):
@@ -143,65 +103,3 @@ class Lock:
         self.release()
 
 
-class Requirement:
-    def __init__(self, *potentials, need=None, **params):
-        self.options = dict(need=need or 1)
-        self.options.update(params)
-
-        self.need = self.options['need']
-        self.potentials = []
-        self._fulfilled = False
-        self._rejected = False
-
-        for p in potentials:
-            self.add_potential(p)
-
-    def __getitem__(self, item):
-        return self.items[item].item
-
-    def add_potential(self, p):
-        if not isinstance(p, Potential):
-            p = Potential(p, **self.options)
-        self.potentials.append(p)
-
-    @property
-    def is_fulfilled(self):
-        return self._fulfilled
-
-    @property
-    def is_rejected(self):
-        return self._rejected
-
-    def get_potentials(self):
-        return self.potentials
-
-    @property
-    def items(self):
-        return [p for p in self.potentials if p.is_fulfilled]
-
-    def count(self):
-        fulfilled = 0
-        rejected = 0
-        for potential in self.potentials:
-            if potential.is_fulfilled:
-                fulfilled += 1
-            if potential.is_rejected:
-                rejected += 1
-        return fulfilled, rejected
-
-    def validate(self):
-        fulfilled, rejected = self.count()
-        if fulfilled >= self.need:
-            self._fulfilled = True
-        else:
-            remaining = len(self.potentials) - rejected
-            if remaining < self.need:
-                self._rejected = True
-                # right now, requirements are 'AND' (mandatory ... clue is in the name)
-                raise RequirementNotMet(f'{remaining} potentials, (need {self.need})')
-
-    def reset(self):
-        self._fulfilled = False
-        self._rejected = False
-        for p in self.get_potentials():
-            p.reset()
