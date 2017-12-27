@@ -23,8 +23,14 @@ class Test(BaseCase):
             a.release()
 
     def test_lock_two(self):
-        with self.lock_class('a', 'b') as obtained:
-            print(obtained)
+        r1 = R('a', 'x', 'y', 'z')
+        with self.lock_class(r1, 'b') as obtained:
+            self.assertEqual('a', obtained[0][0])
+            self.assertEqual('b', obtained[1][0])
+            self.assertEqual('a', r1[0][0])
+            self.assertEqual('a', r1.items[0].item)
+            self.assertEqual(1, len(r1.items))
+            self.assertEqual(4, len(r1.potentials))
 
     def test_concurrent(self):
         a_req = R('a', 'b', need=1)

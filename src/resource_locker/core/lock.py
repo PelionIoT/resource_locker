@@ -103,8 +103,9 @@ class Lock:
                     potential.reject()
                     print('didnt get lock', potential.key)
                 requirement.validate()
-            if requirement.is_rejected:
-                raise Exception('cannot meet all requirements')
+            if not requirement.is_fulfilled:
+                raise RequirementNotMet('cannot meet all requirements')
+        return self.requirements
 
     def _release_all(self):
         for partial in self.obtained:
@@ -123,13 +124,12 @@ class Lock:
         # alternatively, try ordered locking
         with self.lol:
             try:
-                self._acquire_all()
+                return self._acquire_all()
             except Exception as e:
                 # TODO: logging
                 print('release all', e)
                 self._release_all()
                 raise
-        return self.obtained
 
     def release(self):
         self._release_all()
@@ -158,6 +158,9 @@ class Requirement:
 
         for p in potentials:
             self.add_potential(p)
+
+    def __getitem__(self, item):
+        return self.items[item].item
 
     def add_potential(self, p):
         if not isinstance(p, Potential):
