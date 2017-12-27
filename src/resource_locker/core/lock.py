@@ -59,10 +59,12 @@ class Lock:
         return redis_lock.Lock(StrictRedis(), name=key, **opts)
 
     def __init__(self, *requirements, **params):
-        self.options = dict(expire=120, auto_renewal=True)
+        self.options = dict(expire=120, auto_renewal=True, timeout=None)
         self.options.update(params)
 
-        self.lol = self.new_lock(self.lock_of_locks_key, expire=60, auto_renewal=True)
+        self.timeout = self.options.get('timeout')
+
+        self.lol = self.new_lock(self.lock_of_locks_key, expire=60, auto_renewal=bool(self.timeout))
         self.obtained = []
         self.requirements = []
         self.unique_keys = set()
@@ -89,8 +91,9 @@ class Lock:
                 if requirement.is_fulfilled:
                     break
                 lock = self.new_lock(potential.key, **self.options)
-                print('getting', potential.key, self.options.get('timeout'))
-                acquired = lock.acquire(timeout=self.options.get('timeout'))
+
+                print('getting', potential.key, self.timeout)
+                acquired = lock.acquire(timeout=self.timeout, blocking=bool(self.timeout))
                 if acquired:
                     potential.fulfill()
                     self.obtained.append(lock)

@@ -16,7 +16,7 @@ class Test(BaseCase):
             with self.assertRaises(RequirementNotMet):
                 a = Lock('a')
                 a.acquire()
-                Lock('a', timeout=1).acquire()
+                Lock('a').acquire()
         finally:
             a.release()
 
@@ -26,9 +26,9 @@ class Test(BaseCase):
 
     def test_concurrent(self):
         a_req = R('a', 'b', need=1)
-        a = Lock(a_req, timeout=1)
+        a = Lock(a_req, auto_renewal=False)
         b_req = R('a', 'b', need=1)
-        b = Lock(b_req, timeout=1)
+        b = Lock(b_req, auto_renewal=False)
         with a as obtained_a:
             with b as obtained_b:
                 self.assertNotEqual(a_req.items[0].key, b_req.items[0].key)
