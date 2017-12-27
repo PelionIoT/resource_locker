@@ -1,6 +1,8 @@
 from redis import StrictRedis
 import redis_lock
 
+import logging
+
 from .exceptions import RequirementNotMet
 from .requirement import Requirement
 
@@ -13,10 +15,11 @@ class Lock:
         return redis_lock.Lock(StrictRedis(), name=key, **opts)
 
     def __init__(self, *requirements, **params):
-        self.options = dict(expire=120, auto_renewal=True, timeout=None)
+        self.options = dict(expire=120, auto_renewal=True, timeout=None, logger=logging.getLogger(__name__))
         self.options.update(params)
 
-        self.timeout = self.options.get('timeout')
+        self.timeout = self.options['timeout']
+        self.logger = self.options['logger']
 
         self.lol = self.new_lock(self.lock_of_locks_key, expire=60, auto_renewal=bool(self.timeout))
         self.obtained = []
@@ -48,14 +51,14 @@ class Lock:
                 acq_kwargs = dict(blocking=bool(self.timeout))
                 if self.timeout:
                     acq_kwargs.update(dict(timeout=self.timeout))
-                print('getting', potential.key, self.timeout)
+                self.logger.info('getting %s, timeout %s', potential.key, self.timeout)
                 acquired = lock.acquire(**acq_kwargs)
                 if acquired:
                     potential.fulfill()
                     self.obtained.append(lock)
                 else:
                     potential.reject()
-                    print('didnt get lock', potential.key)
+                    self.logger.warning('didnt get lock %s', potential.key)
                 requirement.validate()
             if not requirement.is_fulfilled:
                 raise RequirementNotMet('cannot meet all requirements')
@@ -65,10 +68,8 @@ class Lock:
         for partial in self.obtained:
             try:
                 partial.release()
-            except Exception as e:
-                # TODO: logging
-                print('release failed', e)
-                pass
+            except Exception:
+                self.logger.exception('partial lock release failed')
         self.obtained.clear()
         for r in self.requirements:
             r.reset()
@@ -79,18 +80,16 @@ class Lock:
         with self.lol:
             try:
                 return self._acquire_all()
-            except Exception as e:
-                # TODO: logging
-                print('release all', e)
+            except Exception:
+                self.logger.warning('lock acquisition failed, releasing all partial locks')
                 self._release_all()
                 raise
 
     def release(self):
         self._release_all()
 
-    @staticmethod
-    def clear_all():
-        print('warning: clearing all locks')
+    def clear_all(self):
+        self.logger.critical('caution: clearing all locks; collision safety is voided')
         redis_lock.reset_all(StrictRedis())
 
     def __enter__(self):

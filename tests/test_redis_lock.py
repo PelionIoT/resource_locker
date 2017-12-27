@@ -7,7 +7,7 @@ from resource_locker import R
 
 
 def setUpModule():
-    Lock.clear_all()
+    Lock().clear_all()
 
 
 class Test(BaseCase):
