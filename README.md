@@ -58,9 +58,12 @@ with Lock(req1, req2, 'other thing') as obtained:
 - [ ] TODO: logging of lock timings
 - [ ] TODO: a better approach to lock acquisition (rather than just marching)
 - [ ] TODO: a test to validate high contention behaviour
+- [ ] TODO: integrate with testrunner
+- [ ] TODO: setup.py
 
 ## Related reading
 [mbed Resource Pool?](https://github.com/ARMmbed/resource-pool)
+| ["RaaS" client](https://github.com/ARMmbed/raas-pyclient)
 | [DLM](https://en.wikipedia.org/wiki/Distributed_lock_manager)
 | [Pareto](https://en.wikipedia.org/wiki/Pareto_efficiency)
 | [Ordered locking](http://www.informit.com/articles/article.aspx?p=30188&seqNum=7)
