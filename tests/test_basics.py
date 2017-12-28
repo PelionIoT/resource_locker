@@ -75,10 +75,11 @@ class Test(BaseCase):
 
     def test_requirement_prioritisation(self):
         r = R('a', 'b', 'c', 'd')
-        self.assertListEqual(
-            [p.key for p in r.prioritised_potentials(['c', 'b'])],
-            ['a', 'd', 'b', 'c'],
-        )
+        prioritised = [p.key for p in r.prioritised_potentials(['c', 'b'])]
+
+        self.assertIn('a', prioritised[0:2])
+        self.assertIn('d', prioritised[0:2])
+        self.assertListEqual(prioritised[2:], ['b', 'c'])
 
     def test_req_iter(self):
         ids = ['a', 'b', 'c']
