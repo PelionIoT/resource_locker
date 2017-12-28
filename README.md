@@ -54,12 +54,13 @@ with Lock(req1, req2, 'other thing') as obtained:
 
 ## Task list
 - [x] TODO: reduce fulfilled/rejected to a single tristate rather than two booleans
-- [ ] TODO: tagging of keys
-- [ ] TODO: logging of lock timings
 - [x] TODO: a better approach to lock acquisition (rather than just marching)
 - [x] TODO: a test to validate high contention behaviour
-- [ ] TODO: integrate with testrunner
 - [x] TODO: setup.py
+- [ ] TODO: integrate with testrunner
+- [ ] TODO: probably fix the weird argument/options stuff?
+- [ ] TODO: logging of lock timings
+- [ ] TODO: tagging of keys
 
 ## Related reading
 [mbed Resource Pool?](https://github.com/ARMmbed/resource-pool)
