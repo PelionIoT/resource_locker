@@ -42,6 +42,21 @@ class Requirement:
     def potentials(self):
         return self._potentials
 
+    def prioritised_potentials(self, known_locked):
+        """Sort potentials to improve probability of successful lock
+
+        currently: [untried, known_locked]
+        """
+        known_locked = set(known_locked)
+        part1 = []
+        part2 = []
+        for p in self.potentials:
+            if p.key in known_locked:
+                part2.append(p)
+            else:
+                part1.append(p)
+        return part1 + part2
+
     @property
     def fulfilled(self):
         return [p for p in self._potentials if p.is_fulfilled]

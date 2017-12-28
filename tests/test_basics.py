@@ -73,6 +73,13 @@ class Test(BaseCase):
         with self.subTest(part='zero'):
             R(a, b, c, need=0).validate()
 
+    def test_requirement_prioritisation(self):
+        r = R('a', 'b', 'c', 'd')
+        self.assertListEqual(
+            [p.key for p in r.prioritised_potentials(['c', 'b'])],
+            ['a', 'd', 'b', 'c'],
+        )
+
     def test_req_iter(self):
         ids = ['a', 'b', 'c']
         r = R(*ids)

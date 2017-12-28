@@ -32,10 +32,11 @@ class Test(BaseCase):
     def test_lock_two(self):
         r1 = R('a', 'x', 'y', 'z')
         with self.lock_class(r1, 'b') as obtained:
-            self.assertEqual('a', obtained[0][0])
+            first = obtained[0][0]
+            self.assertIn(first, ['a', 'x', 'y', 'z'])
             self.assertEqual('b', obtained[1][0])
-            self.assertEqual('a', r1[0][0])
-            self.assertEqual('a', r1.fulfilled[0].item)
+            self.assertEqual(first, r1[0][0])
+            self.assertEqual(first, r1.fulfilled[0].item)
             self.assertEqual(1, len(r1.fulfilled))
             self.assertEqual(4, len(r1.potentials))
 

@@ -12,9 +12,17 @@ from .requirement import Requirement
 class Lock:
     lock_of_locks_key = 'lock_of_locks'
 
+    @property
+    def lock_instance(self):
+        if self._lock_instance is None:
+            self._lock_instance = self.new_lock_factory()
+        return self._lock_instance
+
+    def new_lock_factory(self):
+        return StrictRedis()
+
     def new_lock(self, key, **params):
         """Creates a new lock with a lock manager"""
-        self.lock_instance = StrictRedis()
         opts = {k: v for k, v in params.items() if k in {'expire', 'auto_renewal'}}
         return redis_lock.Lock(self.lock_instance, name=key, **opts)
 
@@ -26,7 +34,7 @@ class Lock:
     def clear_all(self):
         """Clears all locks"""
         self.logger.critical('caution: clearing all locks; collision safety is voided')
-        redis_lock.reset_all(StrictRedis())
+        redis_lock.reset_all(self.lock_instance)
 
     def __init__(self, *requirements, **params):
         self.options = dict(
@@ -45,16 +53,13 @@ class Lock:
         self.timeout = self.options['timeout']
         self.logger = self.options['logger']
 
-        self.lol = self.new_lock(self.lock_of_locks_key, expire=60, auto_renewal=bool(self.timeout))
+        # reserved for implementation of different Lock backends
+        self._lock_instance = None
         self.obtained = []
         self.requirements = []
         self.unique_keys = set()
 
-        # list of all keys that are locked. we should ask the lockserver for this at the start.
-        self.known_locked_keys = []
-
-        # reserved for implementation of different Lock backends
-        self.lock_instance = None
+        self.lol = self.new_lock(self.lock_of_locks_key, expire=60, auto_renewal=bool(self.timeout))
 
         for req in requirements:
             self.add_requirement(req)
@@ -92,7 +97,7 @@ class Lock:
 
     def _acquire_all(self):
         for requirement in self.requirements:
-            for potential in requirement.potentials:
+            for potential in requirement.prioritised_potentials(self.get_lock_list()):
                 if requirement.is_fulfilled or requirement.is_rejected:
                     break
                 self._acquire_one(potential=potential)

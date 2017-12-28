@@ -3,6 +3,7 @@ from tests.test_redis_lock import Test as RedisTestCase
 from resource_locker import Lock
 
 from threading import Lock as tLock
+
 all_locks = {}
 
 
