@@ -9,6 +9,7 @@ from resource_locker import R
 from resource_locker import P
 
 import threading
+from functools import partial
 
 
 def setUpModule():
@@ -17,6 +18,10 @@ def setUpModule():
 
 class Test(BaseCase):
     lock_class = Lock
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lock_class = partial(cls.lock_class, block=False)
 
     def test_lock_one(self):
         try:

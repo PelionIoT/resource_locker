@@ -36,7 +36,7 @@ class Lock:
         self.logger.critical('caution: clearing all locks; collision safety is voided')
         redis_lock.reset_all(self.lock_instance)
 
-    def __init__(self, *requirements, **params):
+    def __init__(self, *requirements, block=True, **params):
         self.options = dict(
             logger=logging.getLogger(__name__),
             # lock configuration (see https://pypi.python.org/pypi/python-redis-lock)
@@ -47,8 +47,13 @@ class Lock:
             stop_max_delay=30000,
             wait_exponential_max=10000,
             wait_exponential_multiplier=1500,
+            retry_on_exception=lambda x:  isinstance(x, RequirementNotMet),
         )
         self.options.update(params)
+
+        # shorthand for disabling the retry logic
+        if not block:
+            self.options['stop_max_attempt_number'] = 0
 
         self.timeout = self.options['timeout']
         self.logger = self.options['logger']
@@ -115,7 +120,7 @@ class Lock:
         for r in self.requirements:
             r.reset()
 
-    def acquire(self):
+    def _acquire_or_release(self):
         # simultaneous locking
         # alternatively, try ordered locking
         with self.lol:
@@ -126,7 +131,20 @@ class Lock:
                 self._release_all()
                 raise
 
+    def acquire(self):
+        """Acquire the Lock as configured"""
+        opts = {k: v for k, v in self.options.items() if k in {
+            'stop_max_delay',
+            'stop_max_attempt_number',
+            'wait_exponential_max',
+            'wait_exponential_multiplier',
+            'wait_fixed',
+            'retry_on_exception'
+        }}
+        return retrying.Retrying(**opts).call(self._acquire_or_release)
+
     def release(self):
+        """Release the Lock"""
         self._release_all()
 
     def __enter__(self):
