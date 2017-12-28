@@ -10,8 +10,5 @@ name = "pypi"
 
 
 [packages]
-
-redlock = "*"
-python-redis-lock = "*"
-redis = "*"
-ipython = "*"
+# defer to setup.py
+"-e ." = "*"

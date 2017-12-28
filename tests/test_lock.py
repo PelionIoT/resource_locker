@@ -12,6 +12,12 @@ class LocalDLock(Lock):
         # also somewhat validates backend-agnostic approach
         return all_locks.setdefault(key, tLock())
 
+    def get_lock_list(self):
+        return list(all_locks.keys())
+
+    def clear_all(self):
+        all_locks.clear()
+
 
 class Test(RedisTestCase):
     lock_class = LocalDLock
