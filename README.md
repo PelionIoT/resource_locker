@@ -10,7 +10,7 @@ server is performing discovery).
 
 A comparison of approaches:
 
-| feature | locks only | resource allocator |
+| feature | locks only | resource server |
 |-|:-|-|
 | Collision protection | Y | Y |
 | Lease timeout | Y | Y |
@@ -59,7 +59,7 @@ with Lock(req1, req2, 'other thing') as obtained:
 - [ ] TODO: a better approach to lock acquisition (rather than just marching)
 - [ ] TODO: a test to validate high contention behaviour
 - [ ] TODO: integrate with testrunner
-- [ ] TODO: setup.py
+- [x] TODO: setup.py
 
 ## Related reading
 [mbed Resource Pool?](https://github.com/ARMmbed/resource-pool)
