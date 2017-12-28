@@ -2,6 +2,7 @@ from tests.base import BaseCase
 from operator import itemgetter
 import time
 import threading
+import logging
 
 from resource_locker import Lock
 from resource_locker import R
@@ -35,18 +36,24 @@ class Test(BaseCase):
         [t.join() for t in consumers]
 
         # we should have a total of need * concurrency across all the counters
+        expected = self.concurrency * self.need
         total = 0
         for k, (l, v) in resources.items():
             # grab internal state
-            print(k, v)
             total += v
-        self.assertEqual(self.concurrency * self.need, total)
+            logging.info('%s %s', k, v)
+        logging.info('total %s / %s', total, expected)
+        self.assertEqual(expected, total)
 
 
 def consumer(go, lock_class, need, delay, resources):
     go.wait()
     available = resources.items()
-    with lock_class(R(*available, need=need, key_gen=itemgetter(0))) as obtained:
+    kwargs = dict(
+        wait_exponential_max=None,
+        wait_exponential_multiplier=None,
+    )
+    with lock_class(R(*available, need=need, key_gen=itemgetter(0)), **kwargs) as obtained:
         for resource in obtained[0]:  # in the first Requirement
             # we passed in a list of tuples [(key, (lock, counter))]
             have_lock = resource[1][0].acquire(blocking=False)

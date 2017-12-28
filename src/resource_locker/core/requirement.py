@@ -1,6 +1,8 @@
 from .exceptions import RequirementNotMet
 from .potential import Potential
 
+import random
+
 
 class Requirement:
     def __init__(self, *potentials, need=None, **params):
@@ -55,6 +57,7 @@ class Requirement:
                 part2.append(p)
             else:
                 part1.append(p)
+        random.shuffle(part1)
         return part1 + part2
 
     @property

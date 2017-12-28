@@ -56,8 +56,8 @@ with Lock(req1, req2, 'other thing') as obtained:
 - [x] TODO: reduce fulfilled/rejected to a single tristate rather than two booleans
 - [ ] TODO: tagging of keys
 - [ ] TODO: logging of lock timings
-- [ ] TODO: a better approach to lock acquisition (rather than just marching)
-- [ ] TODO: a test to validate high contention behaviour
+- [x] TODO: a better approach to lock acquisition (rather than just marching)
+- [x] TODO: a test to validate high contention behaviour
 - [ ] TODO: integrate with testrunner
 - [x] TODO: setup.py
 

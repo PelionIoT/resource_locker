@@ -145,7 +145,6 @@ class Lock:
             'wait_random_min',
             'retry_on_exception'
         }}
-        print(opts)
         return retrying.Retrying(**opts).call(self._acquire_or_release)
 
     def release(self):
