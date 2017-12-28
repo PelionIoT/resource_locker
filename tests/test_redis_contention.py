@@ -4,18 +4,22 @@ import time
 import threading
 import logging
 
-from resource_locker import Lock
 from resource_locker import R
+from resource_locker import RedisLockFactory
+
+quiet_logger = logging.getLogger('test_contention')
+quiet_logger.setLevel(logging.DEBUG)
 
 
 class Test(BaseCase):
+    factory_class = RedisLockFactory
     concurrency_delay = 0.5
-    lock_class = Lock
     concurrency = 20
     need = 2
     available = 5
 
     def test_high_contention(self):
+        logging.info('Testing contention using %s', self.factory)
         resources = {f'contention-{i+1}': [threading.Lock(), 0] for i in range(self.available)}
         consumers = []
 
@@ -53,7 +57,9 @@ def consumer(go, lock_class, need, delay, resources):
         wait_exponential_max=None,
         wait_exponential_multiplier=None,
     )
-    with lock_class(R(*available, need=need, key_gen=itemgetter(0)), **kwargs) as obtained:
+    with lock_class(
+            R(*available, need=need, key_gen=itemgetter(0)), logger=quiet_logger, block=True, **kwargs
+    ) as obtained:
         for resource in obtained[0]:  # in the first Requirement
             # we passed in a list of tuples [(key, (lock, counter))]
             have_lock = resource[1][0].acquire(blocking=False)

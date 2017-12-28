@@ -2,7 +2,9 @@ class Potential:
     def __init__(self, item, key_gen=None, tag_gen=None, **params):
         self._key = item if key_gen is None else key_gen(item)
         default_tags = dict(key=self._key)
-        self._tags = default_tags.update(tag_gen(item)) if tag_gen else default_tags
+        if tag_gen:
+            default_tags.update(tag_gen(item))
+        self._tags = default_tags
         self.item = item
         self._state = None
 

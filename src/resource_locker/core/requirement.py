@@ -33,7 +33,6 @@ class Requirement:
 
     @property
     def is_fulfilled(self):
-        self.validate()
         return self._state is True
 
     @property

@@ -1,6 +1,6 @@
 from tests.base import BaseCase
 
-import resource_locker
+from resource_locker import RedisLockFactory
 from resource_locker import RequirementNotMet
 
 
@@ -8,24 +8,19 @@ from resource_locker import Lock
 from resource_locker import R
 from resource_locker import P
 
-from functools import partial
-
 
 class Test(BaseCase):
     lock_class = Lock
-
-    @classmethod
-    def setUpClass(cls):
-        cls.lock_class = partial(cls.lock_class, block=False)
+    factory_class = RedisLockFactory
 
     def test_mutex_blocks(self):
-        resource_locker.core.factory.default_lock_factory.clear_all()
+        self.factory.clear_all()
         try:
             with self.assertRaises(RequirementNotMet):
                 a = self.lock_class('a')
                 a.acquire()
-                all_lock_keys = resource_locker.core.factory.default_lock_factory.get_lock_list()
-                self.assertListEqual(['a'], all_lock_keys)
+                all_lock_keys = self.factory.get_lock_list()
+                self.assertIn('a', all_lock_keys)
                 self.lock_class('a').acquire()
         finally:
             a.release()
@@ -58,3 +53,10 @@ class Test(BaseCase):
         with a:
             with b:
                 self.assertNotEqual(a_req.fulfilled[0].key, b_req.fulfilled[0].key)
+
+    def test_timeout(self):
+        # sub-locks will block and then timeout if requested. unfortunately, 1s is the smallest valid value.
+        with self.lock_class('a'):
+            b = self.lock_class('a', timeout=1)
+            with self.assertRaises(RequirementNotMet):
+                b.acquire()

@@ -1,22 +1,14 @@
-from tests.test_redis_lock import Test as CommonTest  # noqa
-from tests.test_contention import Test as RedisContention
-from resource_locker.core.factory import NativeLockFactory
-import resource_locker
-
-previously = None
+from tests.test_redis_lock import Test as RedisTests
+from tests.test_redis_contention import Test as RedisContention
+from resource_locker import NativeLockFactory
 
 
-def setUpModule():
-    global previously
-    previously = resource_locker.core.factory.default_lock_factory
-    resource_locker.core.factory.default_lock_factory = NativeLockFactory()
-
-
-def tearDownModule():
-    resource_locker.core.factory.default_lock_factory = previously
+class TestCommon(RedisTests):
+    factory_class = NativeLockFactory
 
 
 class TestContention(RedisContention):
+    factory_class = NativeLockFactory
     concurrency = 10
     available = 7
     need = 2
@@ -24,4 +16,5 @@ class TestContention(RedisContention):
 
 
 # lets not run things twice
+del RedisTests
 del RedisContention

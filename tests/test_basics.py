@@ -5,12 +5,13 @@ from resource_locker import RequirementNotMet
 from resource_locker import Lock
 from resource_locker import R
 from resource_locker import P
+from resource_locker import NativeLockFactory
 
 
 class Test(BaseCase):
     def test_inits(self):
         a = Lock('a')
-        r = a.requirements[0]
+        r = a._requirements[0]
         self.assertEqual('a', r.potentials[0].key)
         self.assertFalse(r.is_fulfilled)
 
@@ -60,8 +61,10 @@ class Test(BaseCase):
         c = P('c').fulfill()
 
         with self.subTest(part='impossible'):
+            r = R(a, b, c, need=5)
             with self.assertRaises(RequirementNotMet):
-                R(a, b, c, need=5).validate()
+                r.validate()
+            self.assertTrue(r.is_rejected)
 
         with self.subTest(part='still not enough'):
             with self.assertRaises(RequirementNotMet):
@@ -94,3 +97,22 @@ class Test(BaseCase):
 
         with self.subTest(part='R object is indexable'):
             self.assertEqual(r[1], 'b')
+
+    def test_valid_factory(self):
+        with self.assertRaises(TypeError):
+            Lock(lock_factory='invalid')
+
+    def test_release_failure(self):
+        a = P('a')
+        b = P('b')
+        b.fulfill = None  # so that acquiring it fails
+
+        lock = Lock(a, b, block=False, lock_factory=NativeLockFactory())
+        lock._obtained.append('x')  # mess with internal state so that release also fails
+
+        with self.assertRaises(TypeError):  # error comes from the fulfillment failure, not the release
+            lock.acquire()
+
+    def test_tags(self):
+        p = P('a', tag_gen=lambda x: {'x': 1, 'y': 2})
+        self.assertEqual(p.tags, dict(key='a', x=1, y=2))

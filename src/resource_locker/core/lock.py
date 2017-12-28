@@ -4,14 +4,14 @@ import retrying
 
 from .exceptions import RequirementNotMet
 from .requirement import Requirement
-from .factory import default_lock_factory
-from .factory import LockFactoryMeta
+from resource_locker.factories.meta import LockFactoryMeta
+from resource_locker.factories.redis import RedisLockFactory
 
 
 class Lock:
     lock_of_locks_key = 'lock_of_locks'
 
-    def __init__(self, *requirements, block=True, lock_factory=default_lock_factory, **params):
+    def __init__(self, *requirements, block=True, lock_factory=None, **params):
         self.options = dict(
             logger=logging.getLogger(__name__),
             # lock configuration (see https://pypi.python.org/pypi/python-redis-lock)
@@ -35,15 +35,16 @@ class Lock:
         self.timeout = self.options['timeout']
         self.logger = self.options['logger']
 
+        lock_factory = lock_factory if lock_factory is not None else RedisLockFactory()
         if not isinstance(lock_factory, LockFactoryMeta):
             raise TypeError(f'lock factory is wrong type: {type(lock_factory)}')
         self.lock_factory = lock_factory
-        self.obtained = []
-        self.requirements = []
-        self.unique_keys = set()
+        self._obtained = []
+        self._unique_keys = set()
 
-        self.lol = self.lock_factory.new_lock(self.lock_of_locks_key, expire=60, auto_renewal=bool(self.timeout))
+        self._lol = self.lock_factory.new_lock(self.lock_of_locks_key, expire=60, auto_renewal=bool(self.timeout))
 
+        self._requirements = []
         for req in requirements:
             self.add_requirement(req)
 
@@ -52,10 +53,10 @@ class Lock:
             req = Requirement(req, need=self.options.get('need'))
         req.validate()
         for p in req.potentials:
-            if p.key in self.unique_keys:
+            if p.key in self._unique_keys:
                 raise ValueError(f'Must have unique keys, got two {repr(p.key)}')
-            self.unique_keys.add(p.key)
-        self.requirements.append(req)
+            self._unique_keys.add(p.key)
+        self._requirements.append(req)
 
     def _acquire_one(self, potential):
         if potential.is_fulfilled or potential.is_rejected:
@@ -70,38 +71,38 @@ class Lock:
         if self.timeout:
             acq_kwargs.update(dict(timeout=self.timeout))
         self.logger.info('getting %s, timeout %s', potential.key, self.timeout)
-        acquired = lock.acquire(**acq_kwargs)
-        if acquired:
+        if lock.acquire(**acq_kwargs):
             potential.fulfill()
-            self.obtained.append(lock)
+            self._obtained.append(lock)
         else:
             potential.reject()
             self.logger.warning('didnt get lock %s', potential.key)
 
     def _acquire_all(self):
-        for requirement in self.requirements:
+        for requirement in self._requirements:
             for potential in requirement.prioritised_potentials(self.lock_factory.get_lock_list()):
-                if requirement.is_fulfilled or requirement.is_rejected:
+                if requirement.validate() and requirement.is_fulfilled:
                     break
                 self._acquire_one(potential=potential)
-            if not requirement.is_fulfilled:
-                raise RequirementNotMet('cannot meet all requirements')
-        return self.requirements
+            # this will 'never' be False
+            complete = requirement.validate() and requirement.fulfilled
+            assert complete
+        return self._requirements
 
     def _release_all(self):
-        for partial in self.obtained:
+        for partial in self._obtained:
             try:
                 partial.release()
             except Exception:
-                self.logger.exception('partial lock release failed')
-        self.obtained.clear()
-        for r in self.requirements:
+                self.logger.exception('partial lock release failed, lock state may be affected:')
+        self._obtained.clear()
+        for r in self._requirements:
             r.reset()
 
     def _acquire_or_release(self):
         # simultaneous locking
         # alternatively, try ordered locking
-        with self.lol:
+        with self._lol:
             try:
                 return self._acquire_all()
             except Exception:
@@ -119,7 +120,8 @@ class Lock:
             'wait_fixed',
             'wait_random_max',
             'wait_random_min',
-            'retry_on_exception'
+            'retry_on_exception',
+            'wrap_exception',
         }}
         return retrying.Retrying(**opts).call(self._acquire_or_release)
 
