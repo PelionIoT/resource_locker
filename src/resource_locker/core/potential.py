@@ -1,12 +1,18 @@
 class Potential:
-    def __init__(self, item, key_gen=None, **params):
+    def __init__(self, item, key_gen=None, tag_gen=None, **params):
         self._key = item if key_gen is None else key_gen(item)
+        default_tags = dict(key=self._key)
+        self._tags = default_tags.update(tag_gen(item)) if tag_gen else default_tags
         self.item = item
         self._state = None
 
     @property
     def key(self):
         return self._key
+
+    @property
+    def tags(self):
+        return self._tags
 
     @property
     def is_fulfilled(self):
