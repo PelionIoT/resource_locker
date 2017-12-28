@@ -2,7 +2,6 @@ from tests.base import BaseCase
 
 import resource_locker
 from resource_locker import RequirementNotMet
-from resource_locker.core.factory import RedisLockFactory
 
 
 from resource_locker import Lock
@@ -56,6 +55,6 @@ class Test(BaseCase):
         a = self.lock_class(a_req, auto_renewal=False)
         b_req = R('a', 'b', need=1)
         b = self.lock_class(b_req, auto_renewal=False)
-        with a as obtained_a:
-            with b as obtained_b:
+        with a:
+            with b:
                 self.assertNotEqual(a_req.fulfilled[0].key, b_req.fulfilled[0].key)

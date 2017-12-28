@@ -1,4 +1,4 @@
-from tests.test_redis_lock import Test as CommonTest
+from tests.test_redis_lock import Test as CommonTest  # noqa
 from tests.test_contention import Test as RedisContention
 from resource_locker.core.factory import NativeLockFactory
 import resource_locker
@@ -21,6 +21,7 @@ class TestContention(RedisContention):
     available = 7
     need = 2
     concurrency_delay = 0.001
+
 
 # lets not run things twice
 del RedisContention
