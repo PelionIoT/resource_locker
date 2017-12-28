@@ -8,7 +8,6 @@ from resource_locker import Lock
 from resource_locker import R
 from resource_locker import P
 
-import threading
 from functools import partial
 
 
@@ -62,13 +61,3 @@ class Test(BaseCase):
         with a as obtained_a:
             with b as obtained_b:
                 self.assertNotEqual(a_req.fulfilled[0].key, b_req.fulfilled[0].key)
-
-    @unittest.skip('soon...')
-    def test_high_contention(self):
-        want = R(*[str(i) for i in range(10)])
-        consumers = [Lock(want) for i in range(20)]
-
-        for consumer in consumers:
-            t = threading.Thread(target=consumer.acquire)
-            t.daemon = True
-            t.start()

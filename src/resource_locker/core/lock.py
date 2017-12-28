@@ -44,9 +44,11 @@ class Lock:
             expire=120,
             timeout=None,
             # retry configuration (see https://pypi.python.org/pypi/retrying)
-            stop_max_delay=30000,
-            wait_exponential_max=10000,
-            wait_exponential_multiplier=1500,
+            stop_max_delay=300000,  # 300 * 1000 milliseconds = 5 minutes
+            wait_exponential_max=5000,
+            wait_exponential_multiplier=500,
+            wait_random_min=100,
+            wait_random_max=1000,
             retry_on_exception=lambda x:  isinstance(x, RequirementNotMet),
         )
         self.options.update(params)
@@ -139,8 +141,11 @@ class Lock:
             'wait_exponential_max',
             'wait_exponential_multiplier',
             'wait_fixed',
+            'wait_random_max',
+            'wait_random_min',
             'retry_on_exception'
         }}
+        print(opts)
         return retrying.Retrying(**opts).call(self._acquire_or_release)
 
     def release(self):

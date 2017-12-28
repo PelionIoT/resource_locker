@@ -1,4 +1,5 @@
 from tests.test_redis_lock import Test as RedisTestCase
+from tests.test_contention import Test as RedisContention
 
 from resource_locker import Lock
 
@@ -24,5 +25,13 @@ class Test(RedisTestCase):
     lock_class = LocalDLock
 
 
+class TestContention(RedisContention):
+    lock_class = LocalDLock
+    concurrency = 10
+    available = 7
+    need = 2
+    concurrency_delay = 0.001
+
 # lets not run things twice
 del RedisTestCase
+del RedisContention
