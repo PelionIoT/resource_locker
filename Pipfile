@@ -10,5 +10,5 @@ name = "pypi"
 
 
 [packages]
-# defer to setup.py
-"-e ." = "*"
+
+"-e ." = "*"  # defer to setup.py

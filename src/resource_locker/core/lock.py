@@ -3,6 +3,8 @@ import redis_lock
 
 import logging
 
+import retrying
+
 from .exceptions import RequirementNotMet
 from .requirement import Requirement
 
@@ -27,7 +29,17 @@ class Lock:
         redis_lock.reset_all(StrictRedis())
 
     def __init__(self, *requirements, **params):
-        self.options = dict(expire=120, auto_renewal=True, timeout=None, logger=logging.getLogger(__name__))
+        self.options = dict(
+            logger=logging.getLogger(__name__),
+            # lock configuration (see https://pypi.python.org/pypi/python-redis-lock)
+            auto_renewal=True,
+            expire=120,
+            timeout=None,
+            # retry configuration (see https://pypi.python.org/pypi/retrying)
+            stop_max_delay=30000,
+            wait_exponential_max=10000,
+            wait_exponential_multiplier=1500,
+        )
         self.options.update(params)
 
         self.timeout = self.options['timeout']
