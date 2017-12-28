@@ -7,8 +7,11 @@ name = "pypi"
 
 [dev-packages]
 
+"flake8" = "*"
+ipython = "*"
+coverage = "*"
 
 
 [packages]
 
-"-e ." = "*"  # defer to setup.py
+"-e ." = "*"

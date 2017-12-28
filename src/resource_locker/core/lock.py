@@ -1,42 +1,17 @@
-from redis import StrictRedis
-import redis_lock
-
 import logging
 
 import retrying
 
 from .exceptions import RequirementNotMet
 from .requirement import Requirement
+from .factory import default_lock_factory
+from .factory import LockFactoryMeta
 
 
 class Lock:
     lock_of_locks_key = 'lock_of_locks'
 
-    @property
-    def lock_instance(self):
-        if self._lock_instance is None:
-            self._lock_instance = self.new_lock_factory()
-        return self._lock_instance
-
-    def new_lock_factory(self):
-        return StrictRedis()
-
-    def new_lock(self, key, **params):
-        """Creates a new lock with a lock manager"""
-        opts = {k: v for k, v in params.items() if k in {'expire', 'auto_renewal'}}
-        return redis_lock.Lock(self.lock_instance, name=key, **opts)
-
-    def get_lock_list(self):
-        """Gets a list of live locks to optimise acquisition attempts"""
-        prefix = 'lock:'
-        return [k.decode('utf8').split(':', 1)[1] for k in self.lock_instance.keys(f'{prefix}*')]
-
-    def clear_all(self):
-        """Clears all locks"""
-        self.logger.critical('caution: clearing all locks; collision safety is voided')
-        redis_lock.reset_all(self.lock_instance)
-
-    def __init__(self, *requirements, block=True, **params):
+    def __init__(self, *requirements, block=True, lock_factory=default_lock_factory, **params):
         self.options = dict(
             logger=logging.getLogger(__name__),
             # lock configuration (see https://pypi.python.org/pypi/python-redis-lock)
@@ -60,13 +35,14 @@ class Lock:
         self.timeout = self.options['timeout']
         self.logger = self.options['logger']
 
-        # reserved for implementation of different Lock backends
-        self._lock_instance = None
+        if not isinstance(lock_factory, LockFactoryMeta):
+            raise TypeError(f'lock factory is wrong type: {type(lock_factory)}')
+        self.lock_factory = lock_factory
         self.obtained = []
         self.requirements = []
         self.unique_keys = set()
 
-        self.lol = self.new_lock(self.lock_of_locks_key, expire=60, auto_renewal=bool(self.timeout))
+        self.lol = self.lock_factory.new_lock(self.lock_of_locks_key, expire=60, auto_renewal=bool(self.timeout))
 
         for req in requirements:
             self.add_requirement(req)
@@ -89,7 +65,7 @@ class Lock:
                 'fulfilled' if potential.is_fulfilled else 'rejected'
             )
             return
-        lock = self.new_lock(potential.key, **self.options)
+        lock = self.lock_factory.new_lock(potential.key, **self.options)
         acq_kwargs = dict(blocking=bool(self.timeout))
         if self.timeout:
             acq_kwargs.update(dict(timeout=self.timeout))
@@ -104,7 +80,7 @@ class Lock:
 
     def _acquire_all(self):
         for requirement in self.requirements:
-            for potential in requirement.prioritised_potentials(self.get_lock_list()):
+            for potential in requirement.prioritised_potentials(self.lock_factory.get_lock_list()):
                 if requirement.is_fulfilled or requirement.is_rejected:
                     break
                 self._acquire_one(potential=potential)

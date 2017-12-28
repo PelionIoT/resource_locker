@@ -2,4 +2,3 @@ redlock
 python-redis-lock
 redis
 retrying
-ipython

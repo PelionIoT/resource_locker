@@ -1,18 +1,15 @@
-import unittest
-
 from tests.base import BaseCase
 
+import resource_locker
 from resource_locker import RequirementNotMet
+from resource_locker.core.factory import RedisLockFactory
+
 
 from resource_locker import Lock
 from resource_locker import R
 from resource_locker import P
 
 from functools import partial
-
-
-def setUpModule():
-    Lock().clear_all()
 
 
 class Test(BaseCase):
@@ -22,18 +19,19 @@ class Test(BaseCase):
     def setUpClass(cls):
         cls.lock_class = partial(cls.lock_class, block=False)
 
-    def test_lock_one(self):
+    def test_mutex_blocks(self):
+        resource_locker.core.factory.default_lock_factory.clear_all()
         try:
             with self.assertRaises(RequirementNotMet):
                 a = self.lock_class('a')
-                a.clear_all()
                 a.acquire()
-                self.assertListEqual(['a'], a.get_lock_list())
+                all_lock_keys = resource_locker.core.factory.default_lock_factory.get_lock_list()
+                self.assertListEqual(['a'], all_lock_keys)
                 self.lock_class('a').acquire()
         finally:
             a.release()
 
-    def test_lock_two(self):
+    def test_two_reqs(self):
         r1 = R('a', 'x', 'y', 'z')
         with self.lock_class(r1, 'b') as obtained:
             first = obtained[0][0]
@@ -53,7 +51,7 @@ class Test(BaseCase):
             self.assertTrue(c.is_fulfilled or d.is_fulfilled)
             self.assertFalse(c.is_fulfilled and d.is_fulfilled)
 
-    def test_concurrent(self):
+    def test_non_mutex(self):
         a_req = R('a', 'b', need=1)
         a = self.lock_class(a_req, auto_renewal=False)
         b_req = R('a', 'b', need=1)
