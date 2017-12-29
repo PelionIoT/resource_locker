@@ -1,5 +1,7 @@
 from redis import StrictRedis
 
+from .aspects import Aspects
+
 """The reporter will track and record the amount of time
 spent waiting for or using locks.
 
@@ -26,44 +28,8 @@ key_template = '_TAG_{key}'
 key_value_template = '{key}__{value}'
 
 
-class Aspects:
-    lock_request_count = 'lock_request_count'
-    lock_acquire_count = 'lock_acquire_count'
-    lock_release_count = 'lock_release_count'
-    lock_release_wait = 'lock_release_wait'
-    lock_acquire_wait = 'lock_acquire_wait'
-    lock_acquire_fail_count = 'lock_acquire_fail_count'
-
-    @staticmethod
-    def validate(*aspects):
-        for aspect in aspects:
-            if not hasattr(Aspects, aspect):
-                raise ValueError(f'aspect {repr(aspect)} not supported')
-
-
 def safe(thing):
     return str(thing).strip().lower().replace('.', '-').replace(':', '-').replace('_', '-')
-
-
-class Query:
-    def __init__(self):
-        self.client = StrictRedis(db=1)
-
-    def all_tags(self):
-        return sorted([s.decode() for s in self.client.smembers(tags_collection)])
-
-    def all_values(self, tag):
-        return sorted([s.decode() for s in self.client.smembers(key_template.format(key=safe(tag)))])
-
-    def all_aspects(self, tag, value):
-        return {
-            k.decode(): int(v) for k, v in
-            self.client.hgetall(key_value_template.format(key=safe(tag), value=safe(value))).items()
-        }
-
-    def aspect(self, tag, value, aspect):
-        Aspects.validate(aspect)
-        return int(self.client.hget(key_value_template.format(key=safe(tag), value=safe(value)), aspect))
 
 
 class Reporter:

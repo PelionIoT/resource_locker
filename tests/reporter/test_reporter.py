@@ -1,9 +1,9 @@
 from tests.reporter.base import BaseCase
 
-from resource_locker.reporter.reporter import Query
-from resource_locker.reporter.reporter import Reporter
-from resource_locker.reporter.reporter import Aspects
-from resource_locker.reporter.reporter import safe
+from resource_locker.reporter import Query
+from resource_locker.reporter import Reporter
+from resource_locker.reporter import Aspects
+from resource_locker.reporter import safe
 
 
 class Test(BaseCase):
