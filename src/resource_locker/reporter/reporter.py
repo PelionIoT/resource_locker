@@ -8,19 +8,13 @@ spent waiting for or using locks.
 It must record enough information for another system to optimise
 the number of resources over time.
 
-A potential approach:
-ontological tags have values i.e. k-v pairs
-additionally, the 'key' tag for each lock
+We use ontological tags - they have values i.e. k-v pairs
 - store each unique k encountered
-  - store the timing info against this key
+- store each unique v encountered for a given k
 - store each unique k-v encountered
   - store the timing info against this key
-where timing info is acquire time, release time, duration, count
+where timing info is acquire time, release time, duration, count etc.
 
-in reality, for redis, this means t-k-v triples
-we can only use counters on top level keys
-so what would make sense is a hash for every tag
-this hash would store keys of 
 """
 
 tags_collection = '_TAGS'
