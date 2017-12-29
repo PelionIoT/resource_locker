@@ -27,7 +27,11 @@ class Requirement:
 
     def add_potential(self, p):
         if not isinstance(p, Potential):
-            p = Potential(p, **self.options)
+            opts = {k: v for k, v in self.options.items() if k in {
+                'key_gen',
+                'tag_gen',
+            }}
+            p = Potential(p, **opts)
         self._potentials.append(p)
         return self
 
