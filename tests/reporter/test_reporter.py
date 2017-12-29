@@ -20,6 +20,7 @@ class Test(BaseCase):
         r.lock_success(wait=10)
         r.lock_released(wait=25)
         r.lock_released(wait=25)
+        r.lock_failed()
         q = Query()
         self.assertEqual(sorted(list(tags.keys())), q.all_tags())
         self.assertEqual(['nxp'], q.all_values('make'))
@@ -28,11 +29,16 @@ class Test(BaseCase):
         self.assertEqual({
             'lock_acquire_count': 1,
             'lock_acquire_wait': 10,
+            'lock_acquire_fail_count': 1,
             'lock_release_count': 2,
             'lock_release_wait': 50,
             'lock_request_count': 1
         }, q.all_aspects('model', 'k64f'))
         self.assertEqual(50, q.aspect('model', 'k64f', Aspects.lock_release_wait))
+
+    def test_aspect_valid(self):
+        with self.assertRaises(ValueError):
+            Aspects.validate('wrong')
 
     def test_safe(self):
         bad_string = 'some.daft-string__match'
