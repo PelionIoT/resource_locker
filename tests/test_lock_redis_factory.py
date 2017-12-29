@@ -45,6 +45,16 @@ class Test(BaseCase):
             self.assertTrue(c.is_fulfilled or d.is_fulfilled)
             self.assertFalse(c.is_fulfilled and d.is_fulfilled)
 
+    def test_already_fulfilled(self):
+        a = P('a').reject()
+        b = P('b').fulfill()
+        c = P('c')
+        l = self.lock_class(R(a, b, c, need=2))
+        l._acquire_one(a)
+        l._acquire_one(b)
+        self.assertTrue(a.is_rejected)
+        self.assertTrue(b.is_fulfilled)
+
     def test_non_mutex(self):
         a_req = R('a', 'b', need=1)
         a = self.lock_class(a_req, auto_renewal=False)

@@ -1,5 +1,5 @@
-from tests.test_redis_lock import Test as RedisTests
-from tests.test_redis_contention import Test as RedisContention
+from tests.test_lock_redis_factory import Test as RedisTests
+from tests.test_lock_contention import Test as RedisContention
 from resource_locker import NativeLockFactory
 
 

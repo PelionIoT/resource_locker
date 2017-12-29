@@ -34,6 +34,7 @@ This might work?
 
 ## Usage
 
+### Locking
 ```python
 # some resource thing
 devices = list_connected_devices()
@@ -51,16 +52,59 @@ with Lock(req1, req2, 'other thing') as obtained:
     req1[1]  # second device
     req2[0]  # 'this one thing'
 ```
+#### Configuration
+Lock backend can be configured as follows:
+
+```python
+from redis import StrictRedis
+from resource_locker import RedisLockFactory
+from resource_locker import Lock
+custom = RedisLockFactory(client=StrictRedis(db=7))
+Lock('a', lock_factory=custom)
+```
+
+### Reporting
+The `RedisReporter` class can be used to track lock usage automatically:
+
+```python
+import time
+from resource_locker import reporter
+from resource_locker import Lock
+from resource_locker import P
+with Lock(P('a', model='T1000'), reporter_class=reporter.RedisReporter):
+    time.sleep(1)
+reporter.Query().all_tags()  # ['key', 'model']
+reporter.Query().all_values('model')  # ['T1000']
+reporter.Query().all_aspects('model', 'T1000') # ...
+
+{'lock_acquire_count': 1,
+ 'lock_acquire_wait': 0.008001565933228,
+ 'lock_release_count': 1,
+ 'lock_release_wait': 1.000413179397583,
+ 'lock_request_count': 1}
+```
+
+#### Configuration
+Reporter backend can be configured as follows:
+```python
+from functools import partial
+from redis import StrictRedis
+from resource_locker import reporter
+from resource_locker import Lock
+client = StrictRedis(db=9)
+custom_reporter = partial(reporter.RedisReporter, client=client)
+Lock(reporter_class=custom_reporter)
+```
 
 ## Task list
 - [x] TODO: reduce fulfilled/rejected to a single tristate rather than two booleans
 - [x] TODO: a better approach to lock acquisition (rather than just marching)
 - [x] TODO: a test to validate high contention behaviour
 - [x] TODO: setup.py
+- [x] TODO: logging of lock timings
+- [x] TODO: tagging of keys
 - [ ] TODO: integrate with testrunner
 - [ ] TODO: probably fix the weird argument/options stuff?
-- [ ] TODO: logging of lock timings
-- [ ] TODO: tagging of keys
 
 ## Related reading
 [mbed Resource Pool?](https://github.com/ARMmbed/resource-pool)

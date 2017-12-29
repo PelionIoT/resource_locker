@@ -6,12 +6,15 @@ from .exceptions import RequirementNotMet
 from .requirement import Requirement
 from resource_locker.factories.meta import LockFactoryMeta
 from resource_locker.factories.redis import RedisLockFactory
+from resource_locker.reporter import RedisReporter
+from resource_locker.reporter import Timer
+from resource_locker.reporter import DummyReporter
 
 
 class Lock:
     lock_of_locks_key = 'lock_of_locks'
 
-    def __init__(self, *requirements, block=True, lock_factory=None, **params):
+    def __init__(self, *requirements, block=True, lock_factory=None, reporter_class=None, **params):
         self.options = dict(
             logger=logging.getLogger(__name__),
             # lock configuration (see https://pypi.python.org/pypi/python-redis-lock)
@@ -35,18 +38,18 @@ class Lock:
         self.timeout = self.options['timeout']
         self.logger = self.options['logger']
 
-        lock_factory = lock_factory if lock_factory is not None else RedisLockFactory()
-        if not isinstance(lock_factory, LockFactoryMeta):
-            raise TypeError(f'lock factory is wrong type: {type(lock_factory)}')
-        self.lock_factory = lock_factory
+        self.reporter_class = reporter_class or DummyReporter
+        self.lock_factory = lock_factory or RedisLockFactory()
+
         self._obtained = []
         self._unique_keys = set()
-
         self._lol = self.lock_factory.new_lock(self.lock_of_locks_key, expire=60, auto_renewal=bool(self.timeout))
-
         self._requirements = []
         for req in requirements:
             self.add_requirement(req)
+
+        self.acquire_timer = Timer()
+        self.release_timer = Timer()
 
     def add_requirement(self, req):
         if not isinstance(req, Requirement):
@@ -57,6 +60,11 @@ class Lock:
                 raise ValueError(f'Must have unique keys, got two {repr(p.key)}')
             self._unique_keys.add(p.key)
         self._requirements.append(req)
+
+    def _all_fulfilled_iter(self):
+        for r in self._requirements:
+            for p in r.fulfilled:
+                yield p
 
     def _acquire_one(self, potential):
         if potential.is_fulfilled or potential.is_rejected:
@@ -71,10 +79,13 @@ class Lock:
         if self.timeout:
             acq_kwargs.update(dict(timeout=self.timeout))
         self.logger.info('getting %s, timeout %s', potential.key, self.timeout)
+        reporter = self.reporter_class(**potential.tags)
+        reporter.lock_requested()
         if lock.acquire(**acq_kwargs):
             potential.fulfill()
             self._obtained.append(lock)
         else:
+            reporter.lock_failed()
             potential.reject()
             self.logger.warning('didnt get lock %s', potential.key)
 
@@ -85,7 +96,7 @@ class Lock:
                     break
                 self._acquire_one(potential=potential)
             # this will 'never' be False
-            complete = requirement.validate() and requirement.fulfilled
+            complete = requirement.validate() and requirement.is_fulfilled
             assert complete
         return self._requirements
 
@@ -123,10 +134,18 @@ class Lock:
             'retry_on_exception',
             'wrap_exception',
         }}
-        return retrying.Retrying(**opts).call(self._acquire_or_release)
+        with self.acquire_timer:
+            success = retrying.Retrying(**opts).call(self._acquire_or_release)
+        for p in self._all_fulfilled_iter():
+            self.reporter_class(**p.tags).lock_success(self.acquire_timer.duration)
+        self.release_timer.start()
+        return success
 
     def release(self):
         """Release the Lock"""
+        self.release_timer.stop()
+        for p in self._all_fulfilled_iter():
+            self.reporter_class(**p.tags).lock_released(self.release_timer.duration)
         self._release_all()
 
     def __enter__(self):

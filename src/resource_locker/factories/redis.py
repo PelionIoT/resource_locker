@@ -7,8 +7,8 @@ from .meta import LockFactoryMeta
 
 
 class RedisLockFactory(LockFactoryMeta):
-    def __init__(self, *args, **kwargs):
-        self.client = StrictRedis(*args, **kwargs)
+    def __init__(self, client=None):
+        self.client = client or StrictRedis()
         self.logger = logging.getLogger(__name__)
 
     def new_lock(self, key, **params):
