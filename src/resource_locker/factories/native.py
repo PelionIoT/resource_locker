@@ -5,7 +5,7 @@ from .meta import LockFactoryMeta
 
 class NativeLockFactory(LockFactoryMeta):
     """Demonstrates use of alternative lock implementations"""
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         self.all_locks = {}
 
     def new_lock(self, key, **params):

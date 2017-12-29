@@ -28,7 +28,7 @@ def safe(thing):
     return str(thing).strip().lower().replace('.', '-').replace(':', '-').replace('_', '-')
 
 
-class Reporter:
+class RedisReporter:
     def __init__(self, client=None, bombproof=True, logger=None, **tags):
         self.client = client or StrictRedis(db=1)
         self.tags = tags
@@ -79,7 +79,7 @@ class Reporter:
         self.report(tags, {Aspects.lock_release_count: 1, Aspects.lock_release_wait: wait})
 
 
-class DummyReporter(Reporter):
+class DummyReporter(RedisReporter):
     def __init__(self, *args, **kwargs):
         super().__init__(client=True, *args, **kwargs)
 

@@ -21,7 +21,7 @@ class Query:
 
     def all_aspects(self, tag, value):
         return {
-            k.decode(): int(v) for k, v in
+            k.decode(): json.loads(v) for k, v in
             self.client.hgetall(key_value_template.format(key=safe(tag), value=safe(value))).items()
         }
 

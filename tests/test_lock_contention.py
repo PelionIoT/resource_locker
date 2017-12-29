@@ -8,7 +8,7 @@ from resource_locker import R
 from resource_locker import RedisLockFactory
 
 from resource_locker.reporter import Aspects
-from resource_locker.reporter import Reporter
+from resource_locker.reporter import RedisReporter
 from resource_locker.reporter import Query
 
 quiet_logger = logging.getLogger('test_contention')
@@ -23,7 +23,7 @@ class Test(BaseCase):
     available = 5
 
     def setUp(self):
-        Reporter()._clear_all()
+        RedisReporter()._clear_all()
 
     def test_high_contention(self):
         logging.info('Testing contention using %s', self.factory)
@@ -80,7 +80,7 @@ def consumer(go, lock_class, need, delay, resources):
         R(*available, need=need, key_gen=itemgetter(0)),
         logger=quiet_logger,
         block=True,
-        reporter_class=Reporter,
+        reporter_class=RedisReporter,
         **kwargs,
     ) as obtained:
         for resource in obtained[0]:  # in the first Requirement

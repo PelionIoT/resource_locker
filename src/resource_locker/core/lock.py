@@ -6,7 +6,7 @@ from .exceptions import RequirementNotMet
 from .requirement import Requirement
 from resource_locker.factories.meta import LockFactoryMeta
 from resource_locker.factories.redis import RedisLockFactory
-from resource_locker.reporter import Reporter
+from resource_locker.reporter import RedisReporter
 from resource_locker.reporter import Timer
 from resource_locker.reporter import DummyReporter
 
@@ -38,15 +38,8 @@ class Lock:
         self.timeout = self.options['timeout']
         self.logger = self.options['logger']
 
-        reporter_class = reporter_class or DummyReporter
-        if not issubclass(reporter_class, Reporter):
-            raise TypeError(f'reporter class is wrong type: {type(reporter_class)}')
-        self.reporter_class = reporter_class
-
-        lock_factory = lock_factory or RedisLockFactory()
-        if not isinstance(lock_factory, LockFactoryMeta):
-            raise TypeError(f'lock factory is wrong type: {type(lock_factory)}')
-        self.lock_factory = lock_factory
+        self.reporter_class = reporter_class or DummyReporter
+        self.lock_factory = lock_factory or RedisLockFactory()
 
         self._obtained = []
         self._unique_keys = set()

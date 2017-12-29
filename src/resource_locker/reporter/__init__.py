@@ -1,5 +1,5 @@
 from .aspects import Aspects
-from .reporter import Reporter
+from .reporter import RedisReporter
 from .reporter import DummyReporter
 from .reporter import safe
 from .timer import Timer

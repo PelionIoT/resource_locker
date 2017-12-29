@@ -38,16 +38,6 @@ class Test(BaseCase):
             self.assertEqual(thing, r.potentials[0].item)
             self.assertEqual('123', r.potentials[0].key)
 
-    def test_invalid_factory(self):
-        with self.assertRaises(TypeError) as e:
-            Lock(lock_factory='invalid')
-        self.assertIn('lock factory is wrong type', str(e.exception))
-
-    def test_invalid_reporter(self):
-        with self.assertRaises(TypeError) as e:
-            Lock(reporter_class=type)
-        self.assertIn('reporter class is wrong type', str(e.exception))
-
     def test_sane_default(self):
         Lock()
 
