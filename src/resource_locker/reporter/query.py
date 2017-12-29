@@ -6,6 +6,8 @@ from .reporter import safe
 from .reporter import key_value_template
 from .aspects import Aspects
 
+import json
+
 
 class Query:
     def __init__(self):
@@ -25,4 +27,4 @@ class Query:
 
     def aspect(self, tag, value, aspect):
         Aspects.validate(aspect)
-        return int(self.client.hget(key_value_template.format(key=safe(tag), value=safe(value)), aspect))
+        return json.loads(self.client.hget(key_value_template.format(key=safe(tag), value=safe(value)), aspect))

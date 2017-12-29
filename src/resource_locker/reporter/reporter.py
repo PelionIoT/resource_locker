@@ -2,6 +2,9 @@ from redis import StrictRedis
 
 from .aspects import Aspects
 
+import logging
+import time
+
 """The reporter will track and record the amount of time
 spent waiting for or using locks.
 
@@ -26,10 +29,37 @@ def safe(thing):
     return str(thing).strip().lower().replace('.', '-').replace(':', '-').replace('_', '-')
 
 
+class Timer:
+    def __init__(self):
+        self._start = None
+        self._duration = None
+
+    def start(self):
+        self._start = time.time()
+        return self
+
+    def stop(self):
+        self._duration = time.time() - self._start if self.duration is None else self._duration
+        return self.duration
+
+    @property
+    def duration(self):
+        return self._duration
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
+
+
 class Reporter:
-    def __init__(self, client=None, **tags):
+    def __init__(self, client=None, bombproof=True, logger=None, **tags):
         self.client = client or StrictRedis(db=1)
         self.tags = tags
+        self.logger = logger or logging.getLogger(__name__)
+        self.bombproof = bombproof
 
     def _clear_all(self):
         self.client.flushdb()
@@ -44,23 +74,40 @@ class Reporter:
             self.client.sadd(lookup_key, value)
             store_key = key_value_template.format(key=key, value=value)
             for aspect, incr in aspects.items():
-                self.client.hincrby(store_key, aspect, incr)
+                if isinstance(incr, float):
+                    self.client.hincrbyfloat(store_key, aspect, incr)
+                else:
+                    self.client.hincrby(store_key, aspect, incr)
         return len(tags) * len(aspects)
 
-    def _report(self, tags, aspects):
-        request = {}
-        request.update(self.tags)
-        request.update(tags)
-        return self._increment_all(request, aspects)
+    def report(self, tags, aspects):
+        try:
+            request = {}
+            request.update(self.tags)
+            request.update(tags)
+            return self._increment_all(request, aspects)
+        except Exception:
+            if not self.bombproof:
+                raise
+            else:
+                self.logger.error('reporting failed')
 
     def lock_requested(self, **tags):
-        self._report(tags, {Aspects.lock_request_count: 1})
+        self.report(tags, {Aspects.lock_request_count: 1})
 
-    def lock_success(self, wait: int, **tags):
-        self._report(tags, {Aspects.lock_acquire_count: 1, Aspects.lock_acquire_wait: wait})
+    def lock_success(self, wait: float=None, **tags):
+        self.report(tags, {Aspects.lock_acquire_count: 1, Aspects.lock_acquire_wait: wait})
 
     def lock_failed(self, **tags):
-        self._report(tags, {Aspects.lock_acquire_fail_count: 1})
+        self.report(tags, {Aspects.lock_acquire_fail_count: 1})
 
-    def lock_released(self, wait: int, **tags):
-        self._report(tags, {Aspects.lock_release_count: 1, Aspects.lock_release_wait: wait})
+    def lock_released(self, wait: float=None, **tags):
+        self.report(tags, {Aspects.lock_release_count: 1, Aspects.lock_release_wait: wait})
+
+
+class DummyReporter(Reporter):
+    def __init__(self, *args, **kwargs):
+        super().__init__(client=True, *args, **kwargs)
+
+    def report(self, tags, aspects):
+        return 0

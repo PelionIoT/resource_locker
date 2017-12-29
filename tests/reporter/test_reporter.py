@@ -4,13 +4,14 @@ from resource_locker.reporter import Query
 from resource_locker.reporter import Reporter
 from resource_locker.reporter import Aspects
 from resource_locker.reporter import safe
+from resource_locker.reporter import Timer
 
 
 class Test(BaseCase):
     def setUp(self):
         Reporter()._clear_all()
 
-    def test(self):
+    def test_methods(self):
         tags = dict(
             make='nxp',
             model='k64f'
@@ -36,9 +37,26 @@ class Test(BaseCase):
         }, q.all_aspects('model', 'k64f'))
         self.assertEqual(50, q.aspect('model', 'k64f', Aspects.lock_release_wait))
 
+    def test_timer_useage(self):
+        t = Timer().start()
+        r = Reporter(x='y')
+        r.lock_requested()
+        r.lock_success(t.stop())
+        q = Query()
+        self.assertGreater(q.aspect('x', 'y', Aspects.lock_acquire_wait), 0)
+
     def test_aspect_valid(self):
         with self.assertRaises(ValueError):
             Aspects.validate('wrong')
+
+    def test_report_failure_expected(self):
+        r = Reporter(bombproof=False)
+        with self.assertRaises(TypeError):
+            r.report(tags=1, aspects=None)
+
+    def test_report_failure_muted(self):
+        r = Reporter(bombproof=True)
+        r.report(tags=1, aspects=None)
 
     def test_safe(self):
         bad_string = 'some.daft-string__match'
