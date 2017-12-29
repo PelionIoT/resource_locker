@@ -34,7 +34,7 @@ jobs:
           name: install dependencies
           command: |
             sudo pip install pipenv
-            pipenv install .
+            pipenv install -e .
             pipenv install --dev
 
       - save_cache:
