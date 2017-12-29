@@ -98,9 +98,13 @@ class Test(BaseCase):
         with self.subTest(part='R object is indexable'):
             self.assertEqual(r[1], 'b')
 
-    def test_valid_factory(self):
+    def test_invalid_factory(self):
         with self.assertRaises(TypeError):
             Lock(lock_factory='invalid')
+
+    def test_invalid_reporter(self):
+        with self.assertRaises(TypeError):
+            Lock(reporter_class='invalid')
 
     def test_release_failure(self):
         a = P('a')
