@@ -3,7 +3,6 @@ from redis import StrictRedis
 from .aspects import Aspects
 
 import logging
-import time
 
 """The reporter will track and record the amount of time
 spent waiting for or using locks.
@@ -27,31 +26,6 @@ key_value_template = '{key}__{value}'
 
 def safe(thing):
     return str(thing).strip().lower().replace('.', '-').replace(':', '-').replace('_', '-')
-
-
-class Timer:
-    def __init__(self):
-        self._start = None
-        self._duration = None
-
-    def start(self):
-        self._start = time.time()
-        return self
-
-    def stop(self):
-        self._duration = time.time() - self._start if self.duration is None else self._duration
-        return self.duration
-
-    @property
-    def duration(self):
-        return self._duration
-
-    def __enter__(self):
-        self.start()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop()
 
 
 class Reporter:

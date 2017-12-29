@@ -1,10 +1,9 @@
 from tests.reporter.base import BaseCase
 
-from resource_locker.reporter import Query
+from resource_locker.reporter import Query, Timer
 from resource_locker.reporter import Reporter
 from resource_locker.reporter import Aspects
 from resource_locker.reporter import safe
-from resource_locker.reporter import Timer
 
 
 class Test(BaseCase):

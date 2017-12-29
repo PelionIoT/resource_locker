@@ -1,5 +1,4 @@
 import logging
-import time
 
 import retrying
 
@@ -8,8 +7,8 @@ from .requirement import Requirement
 from resource_locker.factories.meta import LockFactoryMeta
 from resource_locker.factories.redis import RedisLockFactory
 from resource_locker.reporter import Reporter
-from resource_locker.reporter import DummyReporter
 from resource_locker.reporter import Timer
+from resource_locker.reporter import DummyReporter
 
 
 class Lock:
