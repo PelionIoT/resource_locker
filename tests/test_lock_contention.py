@@ -18,7 +18,7 @@ quiet_logger.setLevel(logging.DEBUG)
 class Test(BaseCase):
     factory_class = RedisLockFactory
     concurrency_delay = 0.5
-    concurrency = 20
+    concurrency = 12
     need = 2
     available = 5
 

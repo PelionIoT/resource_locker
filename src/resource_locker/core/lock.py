@@ -40,7 +40,7 @@ class Lock:
 
         reporter_class = reporter_class or DummyReporter
         if not issubclass(reporter_class, Reporter):
-            raise TypeError(f'reporter class is wrong type: {type(reporter)}')
+            raise TypeError(f'reporter class is wrong type: {type(reporter_class)}')
         self.reporter_class = reporter_class
 
         lock_factory = lock_factory or RedisLockFactory()
