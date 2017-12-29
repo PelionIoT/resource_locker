@@ -1,5 +1,8 @@
 # Resource Locker
-Share your toys, kids
+Share your toys, kids!
+
+[![CircleCI](https://circleci.com/gh/ARMmbed/resource_locker.svg?style=shield&circle-token=992df378a72010c9b4ed32c14c1a354cda9664d2)](https://circleci.com/gh/ARMmbed/resource_locker)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://circleci.com/gh/ARMmbed/resource_locker)
 
 _Resource Locker_ assumes arbitrary resources, each with their own deterministic, unique identifier.
 The usage state is retained in a lock server (e.g. a single redis instance, redlock cluster, or similar).
