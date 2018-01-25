@@ -113,6 +113,8 @@ class Lock:
     def _acquire_or_release(self):
         # simultaneous locking
         # alternatively, try ordered locking
+        if not self._requirements:
+            return self._requirements
         with self._lol:
             try:
                 return self._acquire_all()
