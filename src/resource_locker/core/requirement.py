@@ -30,6 +30,7 @@ class Requirement:
             opts = {k: v for k, v in self.options.items() if k in {
                 'key_gen',
                 'tag_gen',
+                'tags',
             }}
             p = Potential(p, **opts)
         self._potentials.append(p)
