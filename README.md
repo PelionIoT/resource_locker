@@ -1,8 +1,9 @@
 # Resource Locker
-Share your toys, kids!
+One at a time, please!
 
 [![CircleCI](https://circleci.com/gh/ARMmbed/resource_locker.svg?style=shield&circle-token=992df378a72010c9b4ed32c14c1a354cda9664d2)](https://circleci.com/gh/ARMmbed/resource_locker)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://circleci.com/gh/ARMmbed/resource_locker)
+[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/ARMmbed/resource_locker)
 
 _Resource Locker_ assumes arbitrary resources, each with their own deterministic, unique identifier.
 The usage state is retained in a lock server (e.g. a single redis instance, redlock cluster, or similar).
@@ -26,12 +27,14 @@ A comparison of approaches:
 (*separation of concerns, **number of clients)
 
 In practise, the intent is for resource sharing between parallel testruns on a constrained resource pool.
-A separate service tracks resource presence, so discovery (querying for them) is assumed to be trivial. 
-
-[GitHub repo](https://github.com/ARMmbed/resource_locker)
+A separate service tracks resource presence, so discovery (querying for them) is assumed to be trivial.
 
 ## Install
-This might work?
+The usual:
+
+`pipenv install resource_locker`
+
+or
 
 `pipenv install -e git+https://github.com/ARMmbed/resource_locker.git#egg=resource_locker`
 
@@ -99,20 +102,8 @@ custom_reporter = partial(reporter.RedisReporter, client=client)
 Lock(reporter_class=custom_reporter)
 ```
 
-## Task list
-- [x] TODO: reduce fulfilled/rejected to a single tristate rather than two booleans
-- [x] TODO: a better approach to lock acquisition (rather than just marching)
-- [x] TODO: a test to validate high contention behaviour
-- [x] TODO: setup.py
-- [x] TODO: logging of lock timings
-- [x] TODO: tagging of keys
-- [ ] TODO: integrate with testrunner
-- [ ] TODO: probably fix the weird argument/options stuff?
-
 ## Related reading
-[mbed Resource Pool?](https://github.com/ARMmbed/resource-pool)
-| ["RaaS" client](https://github.com/ARMmbed/raas-pyclient)
-| [DLM](https://en.wikipedia.org/wiki/Distributed_lock_manager)
-| [Pareto](https://en.wikipedia.org/wiki/Pareto_efficiency)
-| [Ordered locking](http://www.informit.com/articles/article.aspx?p=30188&seqNum=7)
-| [Simultaneous locking](http://www.informit.com/articles/article.aspx?p=30188&seqNum=6)
+[Distributed Lock Manager](https://en.wikipedia.org/wiki/Distributed_lock_manager)
+| [Pareto Efficiency](https://en.wikipedia.org/wiki/Pareto_efficiency)
+| [Ordered Locking](http://www.informit.com/articles/article.aspx?p=30188&seqNum=7)
+| [Simultaneous Locking](http://www.informit.com/articles/article.aspx?p=30188&seqNum=6)
